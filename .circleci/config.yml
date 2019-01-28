@@ -1,0 +1,13 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: mmozeiko/mingw-w64
+    steps:
+      - checkout
+      - run:
+          command: ./build.sh
+          environment:
+            CORE_COUNT: 4
+      - store_artifacts:
+          path: archive

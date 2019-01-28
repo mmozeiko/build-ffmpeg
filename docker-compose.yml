@@ -7,5 +7,5 @@ services:
     init: true
     user: ${UID}
     volumes:
-      - .:/mnt/host
-    command: [ "/mnt/host/build.sh" ]
+      - .:/mnt
+    command: [ "./build.sh" ]

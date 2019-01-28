@@ -2,7 +2,11 @@
 
 set -eux
 
-mkdir -p /mnt/host/{archive,download}
+mkdir -p {archive,download}
+
+if [ ! -v CORE_COUNT ]; then
+  CORE_COUNT=`nproc`
+fi
 
 FFMPEG_VERSION=4.1
 
@@ -22,7 +26,7 @@ FFMPEG_ARGS="                        \
 
 function get()
 {
-  FILE="/mnt/host/download/${1##*/}"
+  FILE="../download/${1##*/}"
   if [ ! -f "${FILE}" ]; then
     wget -q "$1" -O "${FILE}"
   fi
@@ -58,13 +62,13 @@ function build_ffmpeg()
 
   mkcd build
   ../configure ${FFMPEG_ARGS}
-  make -j`nproc`
+  make -j${CORE_COUNT}
 
-  zip -9 /mnt/host/archive/ffmpeg-${FFMPEG_VERSION}-`date +%Y%m%d`.zip ffmpeg.exe ffprobe.exe
+  zip -9 ../../../archive/ffmpeg-${FFMPEG_VERSION}-`date +%Y%m%d`.zip ffmpeg.exe ffprobe.exe
 
   popd
 }
 
-mkcd /mnt/ffmpeg
+mkcd build
 
 build_ffmpeg "${FFMPEG_VERSION}"
