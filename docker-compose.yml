@@ -1,0 +1,11 @@
+version: "2.4"
+
+services:
+  build-ffmpeg:
+    build: .
+    image: mmozeiko/mingw-w64
+    init: true
+    user: ${UID}
+    volumes:
+      - .:/mnt/host
+    command: [ "/mnt/host/build.sh" ]
