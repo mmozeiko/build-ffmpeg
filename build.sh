@@ -108,7 +108,9 @@ function build_ffmpeg()
   pushd ffmpeg-${FFMPEG_VERSION}
 
   mkcd build
-  ../configure ${FFMPEG_ARGS}
+  ../configure ${FFMPEG_ARGS} \
+    --enable-opengl
+
   make -j${CORE_COUNT}
 
   zip -9 ../../../archive/ffmpeg-${FFMPEG_VERSION}-`date +%Y%m%d`.zip ffmpeg.exe ffprobe.exe ffplay.exe
