@@ -1,0 +1,13 @@
+--- src/dynapi/SDL_dynapi.h	2018-10-31 08:07:22.000000000 -0700
++++ src/dynapi/SDL_dynapi.h	2019-01-28 21:50:58.439127695 -0800
+@@ -35,9 +35,7 @@
+    updated SDL can transparently take advantage of them, but your program will
+    not without this feature. Think hard before turning it off.
+ */
+-#ifdef SDL_DYNAMIC_API  /* Tried to force it on the command line? */
+-#error Nope, you have to edit this file to force this off.
+-#endif
++#define SDL_DYNAMIC_API 0
+ 
+ #ifdef __APPLE__
+ #include "TargetConditionals.h"
