@@ -8,6 +8,7 @@ if [ ! -v CORE_COUNT ]; then
   CORE_COUNT=`nproc`
 fi
 
+OPENAL_VERSION=1.19.1
 SDL2_VERSION=2.0.9
 
 FFMPEG_VERSION=4.1
@@ -76,6 +77,32 @@ function mkcd()
   mkdir -p "$1" && cd "$1"
 }
 
+function build_openal()
+{
+  get https://openal-soft.org/openal-releases/openal-soft-${OPENAL_VERSION}.tar.bz2
+  pushd openal-soft-${OPENAL_VERSION}
+
+  cmake ${CMAKE_ARGS}            \
+    -DLIBTYPE="STATIC"           \
+    -DALSOFT_UTILS=OFF           \
+    -DALSOFT_TESTS=OFF           \
+    -DALSOFT_CONFIG=OFF          \
+    -DALSOFT_EXAMPLES=OFF        \
+    -DALSOFT_HRTF_DEFS=OFF       \
+    -DALSOFT_EMBED_HRTF_DATA=OFF \
+    -DALSOFT_AMBDEC_PRESETS=OFF  \
+    -DALSOFT_BACKEND_WINMM=OFF   \
+    -DALSOFT_BACKEND_DSOUND=OFF  \
+    -DALSOFT_BACKEND_WAVE=OFF    \
+    .
+
+  patch -p0 -i ../../patch/openal-fix-static-build.patch
+  cmake --build . -- -j${CORE_COUNT}
+  cmake --build . --target install
+
+  popd
+}
+
 function build_sdl2()
 {
   get https://www.libsdl.org/release/SDL2-${SDL2_VERSION}.tar.gz
@@ -108,8 +135,13 @@ function build_ffmpeg()
   pushd ffmpeg-${FFMPEG_VERSION}
 
   mkcd build
+
+  CFLAGS="-I${MINGW}/include -DAL_LIBTYPE_STATIC" \
+  LDFLAGS="-L${MINGW}/lib -Wl,--start-group -lole32" \
+  \
   ../configure ${FFMPEG_ARGS} \
-    --enable-opengl
+    --enable-opengl \
+    --enable-openal \
 
   make -j${CORE_COUNT}
 
@@ -120,5 +152,6 @@ function build_ffmpeg()
 
 mkcd build
 
+build_openal
 build_sdl2
 build_ffmpeg
