@@ -1,0 +1,33 @@
+--- icd_windows_hkr.c	2019-01-25 16:50:22.000000000 -0800
++++ icd_windows_hkr.c	2019-01-30 02:28:48.953000000 -0800
+@@ -42,9 +42,29 @@
+ #include <assert.h>
+ #include <stdbool.h>
+ #include <initguid.h>
+-#include <Devpkey.h>
++#include <devpkey.h>
+ #include <devguid.h>
+ 
++#define CM_GETIDLIST_FILTER_PRESENT             (0x00000100)
++#define CM_GETIDLIST_FILTER_CLASS               (0x00000200)
++
++typedef unsigned long int DEVPROPTYPE, *PDEVPROPTYPE;
++
++typedef GUID  DEVPROPGUID, *PDEVPROPGUID;
++typedef unsigned long int DEVPROPID,   *PDEVPROPID;
++
++typedef struct _DEVPROPKEY {
++    DEVPROPGUID fmtid;
++    DEVPROPID   pid;
++} DEVPROPKEY, *PDEVPROPKEY;
++
++#define CM_GETIDLIST_FILTER_PRESENT             (0x00000100)
++#define CM_GETIDLIST_FILTER_CLASS               (0x00000200)
++
++#define DEFINE_DEVPROPKEY(name, l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8, pid) extern const DEVPROPKEY DECLSPEC_SELECTANY name = { { l, w1, w2, { b1, b2,  b3,  b4,  b5,  b6,  b7,  b8 } }, pid }
++
++DEFINE_DEVPROPKEY(DEVPKEY_Device_ClassGuid,              0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0, 10);    // DEVPROP_TYPE_GUID
++
+  // This GUID was only added to devguid.h on Windows SDK v10.0.16232 which
+  // corresponds to Windows 10 Redstone 3 (Windows 10 Fall Creators Update).
+ DEFINE_GUID(OCL_GUID_DEVCLASS_SOFTWARECOMPONENT, 0x5c4c3332, 0x344d, 0x483c, 0x87, 0x39, 0x25, 0x9e, 0x93, 0x4c, 0x9c, 0xc8);

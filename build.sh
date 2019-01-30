@@ -8,6 +8,8 @@ if [ ! -v CORE_COUNT ]; then
   CORE_COUNT=`nproc`
 fi
 
+OPENCL_LOADER_VERSION=master
+OPENCL_HEADERS_VERSION=master
 OPENAL_VERSION=1.19.1
 SDL2_VERSION=2.0.9
 
@@ -50,7 +52,11 @@ CMAKE_ARGS="                                     \
 
 function get()
 {
-  FILE="../download/${1##*/}"
+  if [ "$#" -eq 2 ]; then
+    FILE="../download/$2"
+  else
+    FILE="../download/${1##*/}"
+  fi
   if [ ! -f "${FILE}" ]; then
     wget -q "$1" -O "${FILE}"
   fi
@@ -75,6 +81,23 @@ function get()
 function mkcd()
 {
   mkdir -p "$1" && cd "$1"
+}
+
+function build_opencl()
+{
+  get https://github.com/KhronosGroup/OpenCL-ICD-Loader/archive/${OPENCL_LOADER_VERSION}.tar.gz opencl-loader.tar.gz
+  get https://github.com/KhronosGroup/OpenCL-Headers/archive/${OPENCL_HEADERS_VERSION}.tar.gz opencl-headers.tar.gz
+
+  ln -s `pwd`/OpenCL-Headers-${OPENCL_HEADERS_VERSION}/CL ${MINGW}/include
+
+  pushd OpenCL-ICD-Loader-${OPENCL_LOADER_VERSION}
+
+  patch -p0 -i ../../patch/opencl-fix-mingw-build.patch
+  x86_64-w64-mingw32-gcc -O2 -c -I${MINGW}/include icd.c icd_dispatch.c icd_windows.c icd_windows_hkr.c
+  x86_64-w64-mingw32-ar r ${MINGW}/lib/libOpenCL.a icd.o icd_dispatch.o icd_windows.o icd_windows_hkr.o
+  x86_64-w64-mingw32-ranlib ${MINGW}/lib/libOpenCL.a
+
+  popd
 }
 
 function build_openal()
@@ -137,11 +160,12 @@ function build_ffmpeg()
   mkcd build
 
   CFLAGS="-I${MINGW}/include -DAL_LIBTYPE_STATIC" \
-  LDFLAGS="-L${MINGW}/lib -Wl,--start-group -lole32" \
+  LDFLAGS="-L${MINGW}/lib -Wl,--start-group -lole32 -lcfgmgr32" \
   \
   ../configure ${FFMPEG_ARGS} \
     --enable-opengl \
     --enable-openal \
+    --enable-opencl
 
   make -j${CORE_COUNT}
 
@@ -152,6 +176,7 @@ function build_ffmpeg()
 
 mkcd build
 
+build_opencl
 build_openal
 build_sdl2
 build_ffmpeg
