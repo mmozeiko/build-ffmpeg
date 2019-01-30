@@ -1,3 +1,14 @@
+--- config.h	2019-01-30 02:39:16.023000000 -0800
++++ config.h	2019-01-30 02:56:37.408350964 -0800
+@@ -1,6 +1,6 @@
+ /* API declaration export attribute */
+-#define AL_API  __declspec(dllexport)
+-#define ALC_API __declspec(dllexport)
++#define AL_API  
++#define ALC_API 
+ 
+ /* Define any available alignment declaration */
+ #define ALIGN(x) __declspec(aligned(x))
 --- Alc/bformatdec.h	2018-10-11 15:05:31.000000000 -0700
 +++ Alc/bformatdec.h	2019-01-29 00:29:52.122360775 -0800
 @@ -24,9 +24,9 @@
