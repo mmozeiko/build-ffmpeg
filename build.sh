@@ -8,6 +8,7 @@ if [ ! -v CORE_COUNT ]; then
   CORE_COUNT=`nproc`
 fi
 
+MFX_VERSION=1.25
 OPENCL_LOADER_VERSION=master
 OPENCL_HEADERS_VERSION=master
 OPENAL_VERSION=1.19.1
@@ -81,6 +82,18 @@ function get()
 function mkcd()
 {
   mkdir -p "$1" && cd "$1"
+}
+
+function build_mfx()
+{
+  get https://github.com/lu-zero/mfx_dispatch/archive/${MFX_VERSION}.tar.gz mfx-${MFX_VERSION}
+  pushd mfx_dispatch-${MFX_VERSION}
+
+  cmake ${CMAKE_ARGS} -DINTELMEDIASDK_PATH=`pwd` .
+  cmake --build . -- -j${CORE_COUNT}
+  cmake --build . --target install
+
+  popd
 }
 
 function build_opencl()
@@ -165,7 +178,8 @@ function build_ffmpeg()
   ../configure ${FFMPEG_ARGS} \
     --enable-opengl \
     --enable-openal \
-    --enable-opencl
+    --enable-opencl \
+    --enable-libmfx \
 
   make -j${CORE_COUNT}
 
@@ -176,6 +190,7 @@ function build_ffmpeg()
 
 mkcd build
 
+build_mfx
 build_opencl
 build_openal
 build_sdl2
