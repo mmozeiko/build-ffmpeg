@@ -279,6 +279,7 @@ function build_ffmpeg()
   LDFLAGS="-L${MINGW}/lib -Wl,--start-group -lole32 -lcfgmgr32" \
   \
   ../configure ${FFMPEG_ARGS} \
+    --enable-avisynth \
     --enable-libxml2 \
     --enable-opengl \
     --enable-openal \
