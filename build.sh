@@ -13,6 +13,7 @@ BZIP2_VERSION=1.0.6
 XZ_VERSION=5.2.4
 WINICONV_VERSION=0.0.8
 LIBXML2_VERSION=2.9.9
+CHROMAPRINT_VERSION=1.4.3
 MFX_VERSION=1.25
 OPENCL_LOADER_VERSION=master
 OPENCL_HEADERS_VERSION=master
@@ -187,6 +188,18 @@ function build_libxml2()
   popd
 }
 
+function build_chromparint()
+{
+  get https://github.com/acoustid/chromaprint/releases/download/v${CHROMAPRINT_VERSION}/chromaprint-${CHROMAPRINT_VERSION}.tar.gz
+  pushd chromaprint-v${CHROMAPRINT_VERSION}
+
+  cmake ${CMAKE_ARGS} -DFFT_LIB=avfft .
+  cmake --build . -- -j${CORE_COUNT}
+  cmake --build . --target install
+
+  popd
+}
+
 function build_mfx()
 {
   get https://github.com/lu-zero/mfx_dispatch/archive/${MFX_VERSION}.tar.gz mfx-${MFX_VERSION}.tar.gz
@@ -268,6 +281,39 @@ function build_sdl2()
   popd
 }
 
+function build_ffmpeg_stub()
+{
+  get https://www.ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz
+  pushd ffmpeg-${FFMPEG_VERSION}
+
+  mkcd build
+
+  ../configure ${FFMPEG_ARGS} \
+    --prefix=${MINGW}         \
+    --disable-programs        \
+    --disable-network         \
+    --disable-everything      \
+    --enable-rdft             \
+    --disable-bzlib           \
+    --disable-iconv           \
+    --disable-lzma            \
+    --disable-schannel        \
+    --disable-sdl2            \
+    --disable-zlib            \
+    --disable-amf             \
+    --disable-cuvid           \
+    --disable-d3d11va         \
+    --disable-dxva2           \
+    --disable-ffnvcodec       \
+    --disable-nvdec           \
+    --disable-nvenc           \
+
+  make -j${CORE_COUNT}
+  make install
+
+  popd
+}
+
 function build_ffmpeg()
 {
   get https://www.ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz
@@ -275,11 +321,12 @@ function build_ffmpeg()
 
   mkcd build
 
-  CFLAGS="-I${MINGW}/include -DAL_LIBTYPE_STATIC -DBZ_IMPORT" \
-  LDFLAGS="-L${MINGW}/lib -Wl,--start-group -lole32 -lcfgmgr32" \
+  CFLAGS="-I${MINGW}/include -DAL_LIBTYPE_STATIC -DBZ_IMPORT -DCHROMAPRINT_NODLL" \
+  LDFLAGS="-L${MINGW}/lib -Wl,--start-group -lbcrypt -lole32 -lcfgmgr32 -lstdc++ -lavcodec -lavutil" \
   \
   ../configure ${FFMPEG_ARGS} \
     --enable-avisynth \
+    --enable-chromaprint \
     --enable-libxml2 \
     --enable-opengl \
     --enable-openal \
@@ -295,13 +342,17 @@ function build_ffmpeg()
 
 mkcd build
 
+build_ffmpeg_stub
+
 build_zlib
 build_bzip2
 build_xz
 build_winiconv
 build_libxml2
+build_chromparint
 build_mfx
 build_opencl
 build_openal
 build_sdl2
+
 build_ffmpeg
