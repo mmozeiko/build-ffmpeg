@@ -8,6 +8,10 @@ if [ ! -v CORE_COUNT ]; then
   CORE_COUNT=`nproc`
 fi
 
+ZLIB_VERSION=1.2.11
+BZIP2_VERSION=1.0.6
+XZ_VERSION=5.2.4
+
 MFX_VERSION=1.25
 OPENCL_LOADER_VERSION=master
 OPENCL_HEADERS_VERSION=master
@@ -84,9 +88,70 @@ function mkcd()
   mkdir -p "$1" && cd "$1"
 }
 
+function build_zlib()
+{
+  get https://www.zlib.net/zlib-${ZLIB_VERSION}.tar.xz
+  pushd zlib-${ZLIB_VERSION}
+
+  CC=x86_64-w64-mingw32-gcc        \
+  CXX=x86_64-w64-mingw32-g++       \
+  AR=x86_64-w64-mingw32-ar         \
+  RANLIB=x86_64-w64-mingw32-ranlib \
+  \
+  ./configure --prefix=${MINGW} --static
+
+  make -j${CORE_COUNT} libz.a
+  install -m644 zlib.h ${MINGW}/include
+  install -m644 zconf.h ${MINGW}/include
+  install -m644 libz.a ${MINGW}/lib
+  install -m644 zlib.pc ${MINGW}/lib/pkgconfig
+
+  popd
+}
+
+function build_bzip2()
+{
+  get https://sourceforge.net/projects/bzip2/files/bzip2-${BZIP2_VERSION}.tar.gz
+  pushd bzip2-${BZIP2_VERSION}
+
+  CC=x86_64-w64-mingw32-gcc           \
+  AR=x86_64-w64-mingw32-ar            \
+  RANLIB=x86_64-w64-mingw32-ranlib    \
+  CFLAGS="-O2 -D_FILE_OFFSET_BITS=64" \
+  \
+  make -j${CORE_COUNT} libbz2.a
+
+  install -m644 libbz2.a ${MINGW}/lib
+  install -m644 bzlib.h ${MINGW}/include
+
+  popd
+}
+
+function build_xz()
+{
+  get https://tukaani.org/xz/xz-${XZ_VERSION}.tar.xz
+  pushd xz-${XZ_VERSION}
+
+  ./configure ${CONFIGURE_ARGS} \
+    --enable-threads=vista      \
+    --disable-xz                \
+    --disable-xzdec             \
+    --disable-lzmadec           \
+    --disable-lzmainfo          \
+    --disable-lzma-links        \
+    --disable-scripts           \
+    --disable-doc               \
+    --disable-nls               \
+
+  make -j${CORE_COUNT}
+  make install
+
+  popd
+}
+
 function build_mfx()
 {
-  get https://github.com/lu-zero/mfx_dispatch/archive/${MFX_VERSION}.tar.gz mfx-${MFX_VERSION}
+  get https://github.com/lu-zero/mfx_dispatch/archive/${MFX_VERSION}.tar.gz mfx-${MFX_VERSION}.tar.gz
   pushd mfx_dispatch-${MFX_VERSION}
 
   cmake ${CMAKE_ARGS} -DINTELMEDIASDK_PATH=`pwd` .
@@ -101,7 +166,7 @@ function build_opencl()
   get https://github.com/KhronosGroup/OpenCL-ICD-Loader/archive/${OPENCL_LOADER_VERSION}.tar.gz opencl-loader.tar.gz
   get https://github.com/KhronosGroup/OpenCL-Headers/archive/${OPENCL_HEADERS_VERSION}.tar.gz opencl-headers.tar.gz
 
-  ln -s `pwd`/OpenCL-Headers-${OPENCL_HEADERS_VERSION}/CL ${MINGW}/include
+  ln -sf `pwd`/OpenCL-Headers-${OPENCL_HEADERS_VERSION}/CL ${MINGW}/include
 
   pushd OpenCL-ICD-Loader-${OPENCL_LOADER_VERSION}
 
@@ -172,7 +237,7 @@ function build_ffmpeg()
 
   mkcd build
 
-  CFLAGS="-I${MINGW}/include -DAL_LIBTYPE_STATIC" \
+  CFLAGS="-I${MINGW}/include -DAL_LIBTYPE_STATIC -DBZ_IMPORT" \
   LDFLAGS="-L${MINGW}/lib -Wl,--start-group -lole32 -lcfgmgr32" \
   \
   ../configure ${FFMPEG_ARGS} \
@@ -190,6 +255,9 @@ function build_ffmpeg()
 
 mkcd build
 
+build_zlib
+build_bzip2
+build_xz
 build_mfx
 build_opencl
 build_openal
