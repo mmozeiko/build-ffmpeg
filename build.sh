@@ -11,7 +11,8 @@ fi
 ZLIB_VERSION=1.2.11
 BZIP2_VERSION=1.0.6
 XZ_VERSION=5.2.4
-
+WINICONV_VERSION=0.0.8
+LIBXML2_VERSION=2.9.9
 MFX_VERSION=1.25
 OPENCL_LOADER_VERSION=master
 OPENCL_HEADERS_VERSION=master
@@ -149,6 +150,43 @@ function build_xz()
   popd
 }
 
+function build_winiconv()
+{
+  get https://github.com/win-iconv/win-iconv/archive/v${WINICONV_VERSION}.tar.gz winiconv-${WINICONV_VERSION}.tar.gz
+  pushd win-iconv-${WINICONV_VERSION}
+
+  CC=x86_64-w64-mingw32-gcc \
+  AR=x86_64-w64-mingw32-ar \
+  RANLIB=x86_64-w64-mingw32-ranlib \
+  CFLAGS="-O2" \
+  \
+  make libiconv.a
+
+  install -m644 libiconv.a ${MINGW}/lib
+  install -m644 iconv.h ${MINGW}/include
+
+  popd
+}
+
+function build_libxml2()
+{
+  get ftp://xmlsoft.org/libxml2/libxml2-${LIBXML2_VERSION}.tar.gz
+  pushd libxml2-${LIBXML2_VERSION}
+
+  ./configure ${CONFIGURE_ARGS} \
+    --with-iconv="${MINGW}"     \
+    --without-ftp               \
+    --without-http              \
+    --without-python            \
+    --without-zlib              \
+    --without-lzma              \
+
+  make -j${CORE_COUNT}
+  make install
+
+  popd
+}
+
 function build_mfx()
 {
   get https://github.com/lu-zero/mfx_dispatch/archive/${MFX_VERSION}.tar.gz mfx-${MFX_VERSION}.tar.gz
@@ -241,6 +279,7 @@ function build_ffmpeg()
   LDFLAGS="-L${MINGW}/lib -Wl,--start-group -lole32 -lcfgmgr32" \
   \
   ../configure ${FFMPEG_ARGS} \
+    --enable-libxml2 \
     --enable-opengl \
     --enable-openal \
     --enable-opencl \
@@ -258,6 +297,8 @@ mkcd build
 build_zlib
 build_bzip2
 build_xz
+build_winiconv
+build_libxml2
 build_mfx
 build_opencl
 build_openal
