@@ -13,6 +13,8 @@ BZIP2_VERSION=1.0.6
 XZ_VERSION=5.2.4
 WINICONV_VERSION=0.0.8
 LIBXML2_VERSION=2.9.9
+X264_VERSION=stable
+X265_VERSION=3.0
 CHROMAPRINT_VERSION=1.4.3
 MFX_VERSION=1.25
 OPENCL_LOADER_VERSION=master
@@ -169,37 +171,6 @@ function build_winiconv()
   popd
 }
 
-function build_libxml2()
-{
-  get ftp://xmlsoft.org/libxml2/libxml2-${LIBXML2_VERSION}.tar.gz
-  pushd libxml2-${LIBXML2_VERSION}
-
-  ./configure ${CONFIGURE_ARGS} \
-    --with-iconv="${MINGW}"     \
-    --without-ftp               \
-    --without-http              \
-    --without-python            \
-    --without-zlib              \
-    --without-lzma              \
-
-  make -j${CORE_COUNT}
-  make install
-
-  popd
-}
-
-function build_chromparint()
-{
-  get https://github.com/acoustid/chromaprint/releases/download/v${CHROMAPRINT_VERSION}/chromaprint-${CHROMAPRINT_VERSION}.tar.gz
-  pushd chromaprint-v${CHROMAPRINT_VERSION}
-
-  cmake ${CMAKE_ARGS} -DFFT_LIB=avfft .
-  cmake --build . -- -j${CORE_COUNT}
-  cmake --build . --target install
-
-  popd
-}
-
 function build_mfx()
 {
   get https://github.com/lu-zero/mfx_dispatch/archive/${MFX_VERSION}.tar.gz mfx-${MFX_VERSION}.tar.gz
@@ -225,6 +196,82 @@ function build_opencl()
   x86_64-w64-mingw32-gcc -O2 -c -I${MINGW}/include icd.c icd_dispatch.c icd_windows.c icd_windows_hkr.c
   x86_64-w64-mingw32-ar r ${MINGW}/lib/libOpenCL.a icd.o icd_dispatch.o icd_windows.o icd_windows_hkr.o
   x86_64-w64-mingw32-ranlib ${MINGW}/lib/libOpenCL.a
+
+  popd
+}
+
+function build_libxml2()
+{
+  get ftp://xmlsoft.org/libxml2/libxml2-${LIBXML2_VERSION}.tar.gz
+  pushd libxml2-${LIBXML2_VERSION}
+
+  ./configure ${CONFIGURE_ARGS} \
+    --with-iconv="${MINGW}"     \
+    --without-ftp               \
+    --without-http              \
+    --without-python            \
+    --without-zlib              \
+    --without-lzma              \
+
+  make -j${CORE_COUNT}
+  make install
+
+  popd
+}
+
+function build_libx264()
+{
+  get https://github.com/mirror/x264/archive/${X264_VERSION}.tar.gz x264-${X264_VERSION}.tar.gz
+  pushd x264-${X264_VERSION}
+
+  ./configure ${CONFIGURE_ARGS}        \
+    --cross-prefix=x86_64-w64-mingw32- \
+    --disable-cli                      \
+
+  patch -p0 -i ../../patch/x264-install-permissions.patch
+  make -j${CORE_COUNT}
+  make install
+
+  popd
+}
+
+function build_libx265()
+{
+  get https://bitbucket.org/multicoreware/x265/downloads/x265_${X265_VERSION}.tar.gz
+  pushd x265_${X265_VERSION}
+
+  cmake -B build12 ${CMAKE_ARGS} -DENABLE_SHARED=OFF -DEXPORT_C_API=OFF -DENABLE_CLI=OFF -DHIGH_BIT_DEPTH=ON -DMAIN12=ON source
+  cmake --build build12 -- -j${CORE_COUNT}
+
+  cmake -B build10 ${CMAKE_ARGS} -DENABLE_SHARED=OFF -DEXPORT_C_API=OFF -DENABLE_CLI=OFF -DHIGH_BIT_DEPTH=ON source
+  cmake --build build10 -- -j${CORE_COUNT}
+
+  cmake -B build ${CMAKE_ARGS} -DENABLE_SHARED=OFF -DEXTRA_LIB="${PWD}/build12/libx265.a;${PWD}/build10/libx265.a" -DENABLE_CLI=OFF -DLINKED_10BIT=ON -DLINKED_12BIT=ON source
+  cmake --build build -- -j${CORE_COUNT}
+
+  mv build/libx265.a build/libx265_main.a
+  x86_64-w64-mingw32-ar -M <<EOF
+CREATE build/libx265.a
+ADDLIB build/libx265_main.a
+ADDLIB build10/libx265.a
+ADDLIB build12/libx265.a
+SAVE
+END
+EOF
+
+  cmake --build build --target install
+
+  popd
+}
+
+function build_chromparint()
+{
+  get https://github.com/acoustid/chromaprint/releases/download/v${CHROMAPRINT_VERSION}/chromaprint-${CHROMAPRINT_VERSION}.tar.gz
+  pushd chromaprint-v${CHROMAPRINT_VERSION}
+
+  cmake ${CMAKE_ARGS} -DFFT_LIB=avfft .
+  cmake --build . -- -j${CORE_COUNT}
+  cmake --build . --target install
 
   popd
 }
@@ -328,6 +375,8 @@ function build_ffmpeg()
     --enable-avisynth \
     --enable-chromaprint \
     --enable-libxml2 \
+    --enable-libx264 \
+    --enable-libx265 \
     --enable-opengl \
     --enable-openal \
     --enable-opencl \
@@ -348,6 +397,8 @@ build_zlib
 build_bzip2
 build_xz
 build_winiconv
+build_libx264
+build_libx265
 build_libxml2
 build_chromparint
 build_mfx
