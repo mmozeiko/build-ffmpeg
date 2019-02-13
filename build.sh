@@ -22,7 +22,7 @@ OPENCL_HEADERS_VERSION=master
 OPENAL_VERSION=1.19.1
 SDL2_VERSION=2.0.9
 
-FFMPEG_VERSION=4.1
+FFMPEG_VERSION=4.1.1
 
 FFMPEG_ARGS="                        \
   --arch=x86                         \
