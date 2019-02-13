@@ -15,6 +15,7 @@ WINICONV_VERSION=0.0.8
 LIBXML2_VERSION=2.9.9
 X264_VERSION=stable
 X265_VERSION=3.0
+FDK_AAC_VERSION=2.0.0
 CHROMAPRINT_VERSION=1.4.3
 MFX_VERSION=1.25
 OPENCL_LOADER_VERSION=master
@@ -276,6 +277,19 @@ function build_chromparint()
   popd
 }
 
+function build_fdk_aac()
+{
+  get https://sourceforge.net/projects/opencore-amr/files/fdk-aac/fdk-aac-${FDK_AAC_VERSION}.tar.gz
+
+  pushd fdk-aac-${FDK_AAC_VERSION}
+  ./configure ${CONFIGURE_ARGS}
+
+  make -j${CORE_COUNT}
+  make install
+
+  popd
+}
+
 function build_openal()
 {
   get https://openal-soft.org/openal-releases/openal-soft-${OPENAL_VERSION}.tar.bz2
@@ -374,6 +388,7 @@ function build_ffmpeg()
   ../configure ${FFMPEG_ARGS} \
     --enable-avisynth \
     --enable-chromaprint \
+    --enable-libfdk-aac \
     --enable-libxml2 \
     --enable-libx264 \
     --enable-libx265 \
@@ -401,6 +416,7 @@ build_libx264
 build_libx265
 build_libxml2
 build_chromparint
+build_fdk_aac
 build_mfx
 build_opencl
 build_openal
